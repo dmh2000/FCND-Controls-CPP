@@ -1,3 +1,5 @@
+#include <cassert>
+#include <iostream>
 #include "Common.h"
 #include "QuadControl.h"
 
@@ -11,6 +13,16 @@
 #ifdef __PX4_NUTTX
 #include <systemlib/param/param.h>
 #endif
+
+static float clip(float x, float xmin, float xmax) {
+	if (x < xmin) {
+		x = xmin;
+	}
+	else if (x > xmax) {
+		x = xmax;
+	}
+	return x;
+}
 
 void QuadControl::Init()
 {
@@ -70,10 +82,45 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+
+  float c_bar;
+  float p_bar;
+  float q_bar;
+  float r_bar;
+  float k_m = 1.0f;
+  float omega[4];
+  float t[4];
+  float k_f = 1.0;
+  float k = 1.0;
+
+  c_bar = (-collThrustCmd * mass) / k_f;
+  p_bar = momentCmd.x / (L * k_f);
+  q_bar = momentCmd.y / (L * k_f);
+  r_bar = momentCmd.z / k_m;
+
+  omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4.0f;
+  omega[1] = (c_bar + q_bar - (2.0f * omega[0])) / 2.0f;
+  omega[2] = (c_bar + r_bar - (2.0f * omega[0])) / 2.0f;
+  omega[3] = (c_bar + p_bar - (2.0f * omega[0])) / 2.0f;
+
+  // thrust = omega**2 / drag-thrust ratio
+  t[0] = k * omega[0] / kappa;
+  t[1] = k * omega[1] / kappa;
+  t[2] = k * omega[2] / kappa;
+  t[3] = k * omega[3] / kappa;
+  // std::cout << t[0] << "," << t[1] << "," << t[2] << "," << t[3] << "\n";
+
+  // hover thrust
   cmd.desiredThrustsN[0] = mass * 9.81f / 4.f; // front left
   cmd.desiredThrustsN[1] = mass * 9.81f / 4.f; // front right
   cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
   cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
+
+  // add control thrust
+  cmd.desiredThrustsN[0] += t[0];
+  cmd.desiredThrustsN[1] += t[1];
+  cmd.desiredThrustsN[2] += t[2];
+  cmd.desiredThrustsN[3] += t[3];
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -97,9 +144,15 @@ V3F QuadControl::BodyRateControl(V3F pqrCmd, V3F pqr)
   V3F momentCmd;
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+  V3F I(Ixx, Iyy, Izz);
+  V3F err;
 
-  
+  // compute moments from rates * moment of intertia for each axis
 
+  // get pqr error term
+  err = pqrCmd - pqr;
+  // compute moments 
+  momentCmd = (err * kpPQR) * I;
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
   return momentCmd;
