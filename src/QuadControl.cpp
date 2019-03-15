@@ -69,11 +69,6 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	// You'll need the arm length parameter L, and the drag/thrust ratio kappa
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-
-	cmd.desiredThrustsN[0] = mass * 9.81f / 4.f; // front left
-	cmd.desiredThrustsN[1] = mass * 9.81f / 4.f; // front right
-	cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
-	cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
 	float t[4];
 	float f[4];
 	float len = L / sqrtf(2.0f);
@@ -84,8 +79,8 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	t[3] = collThrustCmd;          // Ft
 
 	/*
-	t[0] = f[0] - f[1] - f[2] + f[3] (from python def tau_x)
-	t[1] = f[0] + f[1] - f[2] - f[3] (from python def tau_y)
+	t[0] = f[0] - f[1] - f[2] + f[3] 
+	t[1] = f[0] + f[1] - f[2] - f[3] 
 	t[2] = f[0] - f[1] + f[2] - f[3]
 	t[3] = f[0] + f[1] + f[2] + f[3] = collective thrust
 	---------------------------------------------------
@@ -185,8 +180,32 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	Mat3x3F R = attitude.RotationMatrix_IwrtB();
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	float c;
 
+	// convert collective thrust to acceleration
+	c = collThrustCmd / mass;
 
+	float b_x_c_target;
+	float b_x_c_actual;
+	float b_x_c_dot;
+
+	float b_y_c_target;
+	float b_y_c_actual;
+	float b_y_c_dot;
+
+	// from Feed-Forward Parameter Identification for Precise Periodic Quadrocopter Motions
+	// section III and IV
+	b_x_c_target = accelCmd.x / c;
+	b_x_c_actual = R(0, 2);
+	b_x_c_dot = (b_x_c_target - b_x_c_actual) * kpBank;
+
+	b_y_c_target = accelCmd.y / c;
+	b_y_c_actual = R(1, 2);
+	b_y_c_dot = (b_y_c_target - b_y_c_actual) * kpBank;
+	
+	pqrCmd.x = (b_x_c_dot * R(1, 0) - b_y_c_dot * R(0, 0)) / R(2, 2);
+	pqrCmd.y = (b_x_c_dot * R(1, 2) - b_y_c_dot * R(0, 1)) / R(2, 2);
+	pqrCmd.z = 0;
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -214,7 +233,7 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 	//  - remember that for an upright quad in NED, thrust should be HIGHER if the desired Z acceleration is LOWER
 
 	Mat3x3F R = attitude.RotationMatrix_IwrtB();
-	float thrust = 0;
+	float thrust = mass * 9.81f;
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
