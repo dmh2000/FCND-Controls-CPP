@@ -70,55 +70,25 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 	float f[4];
-	float t[4];
+	float omega[4];
 	float len = L / sqrtf(2.0f);
+	float k_f = 1.0f;
+	float k_m = 1.0f;
 
-	t[0] = momentCmd.x / len;      // tau_x
-	t[1] = momentCmd.y / len;      // tau_y
-	t[2] = -momentCmd.z / kappa;   // tau_z
-	t[3] = collThrustCmd;          // Ft
+	float c_bar = (-collThrustCmd * mass) / k_f;
+	float p_bar = momentCmd.x / len;
+	float q_bar = momentCmd.y / len;
+	float r_bar = momentCmd.z / k_m;
 
-	/*
-	t[0] = f[0] - f[1] - f[2] + f[3] 
-	t[1] = f[0] + f[1] - f[2] - f[3] 
-	t[2] = f[0] - f[1] + f[2] - f[3]
-	t[3] = f[0] + f[1] + f[2] + f[3] = collective thrust
-	---------------------------------------------------
-	isolate f0 by adding all 4 equations
-	t0 + t1 + t2 + t3 = 4f[0]
-	f0 = (t0 + t1 + t2 + t3) / 4
+	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4;
+	omega[1] = (c_bar + q_bar - 2 * omega[0]);
+	omega[2] = (c_bar + r_bar - 2 * omega[0]);
+	omega[3] = (c_bar + p_bar - 2 * omega[0]) / 2.0;
 
-	isolate f1 by by adding t1 and t3 and subtracting t0 and t2
-	-t0 + t1 - t2 + t3 =
-	-(f[0] - f[1] - f[2] + f[3])
-	+(f[0] + f[1] - f[2] - f[3])
-	-(f[0] - f[1] + f[2] - f[3])
-	+(f[0] + f[1] + f[2] + f[3])
-	 0F0     4f1    0f2    0f3
-	 f1 = (-t0 + t1 - t2 + t3) / 4
-
-	 isolate f2 by subtracting t0 and t1 and adding t2 and t3
-	 -t0 - t1 + t2 + t3
-	-(f[0] - f[1] - f[2] + f[3])
-	-(f[0] + f[1] - f[2] - f[3])
-	+(f[0] - f[1] + f[2] - f[3])
-	+(f[0] + f[1] + f[2] + f[3])
-	 0f0   + 0f1  + 4f2  + 0f3
-	 f2 = (-t0 - t1 + t2 + t3)
-
-	 isolate f3 by subtracting t2 and t1, adding t2 and t3
-	+(f[0] - f[1] - f[2] + f[3])
-	-(f[0] + f[1] - f[2] - f[3])
-	-(f[0] - f[1] + f[2] - f[3])
-	+(f[0] + f[1] + f[2] + f[3])
-      -f0  + 0f1  + 0f2  + 4f3
-	 f3 = (t0 - t1 - t2 + t3) / 4
-	*/
-
-	f[0] = (+t[0] + t[1] + t[2] + t[3]) / 4.0f;
-	f[1] = (-t[0] + t[1] - t[2] + t[3]) / 4.0f;
-	f[2] = (-t[0] - t[1] + t[2] + t[3]) / 4.0f;
-	f[3] = (+t[0] - t[1] - t[2] + t[3]) / 4.0f;
+	f[0] = k_f * omega[0] * (1.0f - kappa);
+	f[1] = k_f * omega[1] * (1.0f - kappa);
+	f[2] = k_f * omega[2] * (1.0f - kappa);
+	f[3] = k_f * omega[3] * (1.0f - kappa);
 
 	// be sure to get the outputs in the right order for the motor positions
 	cmd.desiredThrustsN[0] = CONSTRAIN(f[0], minMotorThrust, maxMotorThrust);
