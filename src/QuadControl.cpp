@@ -69,6 +69,12 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	// You'll need the arm length parameter L, and the drag/thrust ratio kappa
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	/*
+	references used for this function:
+		Thrust Mixing, Saturation, and Body-Rate Control for Accurate Aggressive Quadrotor Flight	
+		Faessler,Scaramuzza
+	Slack channel references from previous cohorts
+	*/
 	float t[4];
 	float f[4];
 	float len = L / sqrtf(2.0f);
