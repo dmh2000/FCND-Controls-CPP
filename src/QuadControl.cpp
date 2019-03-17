@@ -75,20 +75,20 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	float k_f = 1.0f;
 	float k_m = 1.0f;
 
-	float c_bar = (-collThrustCmd * mass) / k_f;
+	float c_bar = collThrustCmd; 
 	float p_bar = momentCmd.x / len;
 	float q_bar = momentCmd.y / len;
-	float r_bar = momentCmd.z / k_m;
+	float r_bar = momentCmd.z / kappa;
 
-	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4;
-	omega[1] = (c_bar + q_bar - 2 * omega[0]);
-	omega[2] = (c_bar + r_bar - 2 * omega[0]);
-	omega[3] = (c_bar + p_bar - 2 * omega[0]) / 2.0;
+	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4.0f;
+	omega[1] = (c_bar + q_bar - 2 * omega[0]) / 2.0f;
+	omega[2] = (c_bar + r_bar - 2 * omega[0]) / 2.0f;
+	omega[3] = (c_bar + p_bar - 2 * omega[0]) / 2.0f;
 
-	f[0] = k_f * omega[0] * (1.0f - kappa);
-	f[1] = k_f * omega[1] * (1.0f - kappa);
-	f[2] = k_f * omega[2] * (1.0f - kappa);
-	f[3] = k_f * omega[3] * (1.0f - kappa);
+	f[0] = k_f * omega[0] ;
+	f[1] = k_f * omega[1] ;
+	f[2] = k_f * omega[2] ;
+	f[3] = k_f * omega[3] ;
 
 	// be sure to get the outputs in the right order for the motor positions
 	cmd.desiredThrustsN[0] = CONSTRAIN(f[0], minMotorThrust, maxMotorThrust);
