@@ -12,6 +12,8 @@
 #include <systemlib/param/param.h>
 #endif
 
+const float G = 9.81f;
+
 void QuadControl::Init()
 {
 	BaseController::Init();
@@ -80,7 +82,8 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 #if defined(USE_OMEGA)
 	/* USE PROP VELOCITIES FOR MOTOR COMMANDS 
 	references used for this function:
-	   code from excercises
+	   Feed-Forward Parameter Identification for Precise Periodic Quadrocopter Motions
+	   code from exercises
 	   hints from previous cohorts (slack)
 	
 	GAINS FOR PROP VELOCITY SOLUTION kpPQR = 42,42,6
@@ -94,7 +97,7 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	float c_bar = collThrustCmd;
 	float p_bar = momentCmd.x / len;
 	float q_bar = momentCmd.y / len;
-	float r_bar = momentCmd.z / kappa;
+	float r_bar = -momentCmd.z / kappa;
 
 	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4.0f;
 	omega[1] = (c_bar + q_bar - 2 * omega[0]) / 2.0f;
@@ -227,7 +230,7 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	float c;
 
 	// convert collective thrust to acceleration
-	c = collThrustCmd / mass;
+	c = -collThrustCmd / mass;
 
 	float b_x_c_target;
 	float b_x_c_actual;
@@ -248,7 +251,7 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	b_y_c_dot = (b_y_c_target - b_y_c_actual) * kpBank;
 	
 	pqrCmd.x = (b_x_c_dot * R(1, 0) - b_y_c_dot * R(0, 0)) / R(2, 2);
-	pqrCmd.y = (b_x_c_dot * R(1, 2) - b_y_c_dot * R(0, 1)) / R(2, 2);
+	pqrCmd.y = (b_x_c_dot * R(1, 1) - b_y_c_dot * R(0, 1)) / R(2, 2);
 	pqrCmd.z = 0;
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
@@ -277,14 +280,33 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 	//  - remember that for an upright quad in NED, thrust should be HIGHER if the desired Z acceleration is LOWER
 
 	Mat3x3F R = attitude.RotationMatrix_IwrtB();
-	float thrust = mass * 9.81f;
+	float thrust;
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	float z_err;
+	float z_err_dot; 
+	float z_dot_limited;
+	float u_1_bar;
+	float c;
+	static float max_thrust = 0.0f;
 
+	// compute the desired z_dot_limited
+	z_err = posZCmd - posZ;
+	z_dot_limited = (z_err * kpPosZ) + velZCmd;
+	z_dot_limited = CONSTRAIN(z_dot_limited, -maxAscentRate, maxDescentRate);
 
+	// position term
+	z_err_dot = velZCmd - velZ;
+	integratedAltitudeError += z_err * dt;
+	u_1_bar = z_err * kpPosZ + z_err_dot * kpVelZ + accelZCmd + integratedAltitudeError * KiPosZ;
+
+	// acceleration
+	c = (u_1_bar - G) / R(2, 2);
+
+	// convert to force (F=MA) with UP = +
+	thrust = -1.0 * (mass * c);
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
-
 	return thrust;
 }
 
@@ -318,9 +340,31 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 	V3F accelCmd = accelCmdFF;
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	float x_err;
+	float x_err_dot;
+	float y_err;
+	float y_err_dot;
 
+	// limit velocity command
+	//velCmd.x = CONSTRAIN(velCmd.x, -maxSpeedXY, maxSpeedXY);
+	//velCmd.y = CONSTRAIN(velCmd.y, -maxSpeedXY, maxSpeedXY);
 
+	// compute x term
+	x_err = posCmd.x - pos.x;
+	x_err_dot = velCmd.x - vel.x;
+	accelCmd.x = x_err * kpPosXY + x_err_dot * kpVelXY + accelCmdFF.x;
+	// limit it
+	accelCmd.x = CONSTRAIN(accelCmd.x,-maxAccelXY,maxAccelXY);
 
+	// compute y term
+	y_err = posCmd.y - pos.y;
+	y_err_dot = velCmd.y - vel.y;
+	accelCmd.y = y_err * kpPosXY + y_err_dot * kpVelXY + accelCmdFF.y;
+	// limit it
+	accelCmd.y = CONSTRAIN(accelCmd.y,-maxAccelXY,maxAccelXY);
+
+	// no z component
+	accelCmd.z = 0.0f;
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
 	return accelCmd;
@@ -341,7 +385,9 @@ float QuadControl::YawControl(float yawCmd, float yaw)
 
 	float yawRateCmd = 0;
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-
+	//yawCmd = fmodf(yawCmd, F_PI);
+	//yaw = fmodf(yaw, F_PI);
+	yawRateCmd = (yawCmd - yaw) * kpYaw;
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
