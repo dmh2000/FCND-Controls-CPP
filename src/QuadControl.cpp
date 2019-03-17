@@ -90,6 +90,7 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	float k_f = 1.0f;
 	float k_m = 1.0f;
 
+	// the problem i had was that c_bar was just collThrustCOmmand, not -c * mass
 	float c_bar = collThrustCmd;
 	float p_bar = momentCmd.x / len;
 	float q_bar = momentCmd.y / len;
