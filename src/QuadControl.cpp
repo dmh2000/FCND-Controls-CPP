@@ -69,14 +69,50 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	// You'll need the arm length parameter L, and the drag/thrust ratio kappa
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-	/*
+
+	float f[4];
+
+	// I solved this two ways:
+	// 1. define USE_OMEGA to get the solution that uses propeller velocities from lesson
+	// 2. undef  USE_OMEGA to get the solution that solves the linear equation of forces and torques
+#define USE_OMEGA
+
+#if defined(USE_OMEGA)
+	/* USE PROP VELOCITIES FOR MOTOR COMMANDS 
+	references used for this function:
+	   code from excercises
+	   hints from previous cohorts (slack)
+	
+	GAINS FOR PROP VELOCITY SOLUTION kpPQR = 42,42,6
+	*/
+	float omega[4];
+	float len = L / sqrtf(2.0f);
+	float k_f = 1.0f;
+	float k_m = 1.0f;
+
+	float c_bar = collThrustCmd;
+	float p_bar = momentCmd.x / len;
+	float q_bar = momentCmd.y / len;
+	float r_bar = momentCmd.z / kappa;
+
+	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4.0f;
+	omega[1] = (c_bar + q_bar - 2 * omega[0]) / 2.0f;
+	omega[2] = (c_bar + r_bar - 2 * omega[0]) / 2.0f;
+	omega[3] = (c_bar + p_bar - 2 * omega[0]) / 2.0f;
+
+	f[0] = k_f * omega[0];
+	f[1] = k_f * omega[1];
+	f[2] = k_f * omega[2];
+	f[3] = k_f * omega[3];
+#else
+	/* SOLVE THE INDIVIDUAL FORCE EQUATIONS 
 	references used for this function:
 		Thrust Mixing, Saturation, and Body-Rate Control for Accurate Aggressive Quadrotor Flight	
 		Faessler,Scaramuzza
-	Slack channel references from previous cohorts
+		hints from previous cohorts (slack)
+	GAINS FOR FORCE-TORQUE SOLUTION  kpPQR = 42,42,15
 	*/
 	float t[4];
-	float f[4];
 	float len = L / sqrtf(2.0f);
 
 	t[0] = momentCmd.x / len;      // tau_x
@@ -125,6 +161,7 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	f[1] = (-t[0] + t[1] - t[2] + t[3]) / 4.0f;
 	f[2] = (-t[0] - t[1] + t[2] + t[3]) / 4.0f;
 	f[3] = (+t[0] - t[1] - t[2] + t[3]) / 4.0f;
+#endif
 
 	// be sure to get the outputs in the right order for the motor positions
 	cmd.desiredThrustsN[0] = CONSTRAIN(f[0], minMotorThrust, maxMotorThrust);
