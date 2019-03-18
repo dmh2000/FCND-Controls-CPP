@@ -234,6 +234,7 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 
 	// no negative thrust allowed
 	if (collThrustCmd < 0.0f) {
+		// constructor zeroes these out
 		return pqrCmd;
 	}
 
@@ -251,14 +252,14 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	// from Feed-Forward Parameter Identification for Precise Periodic Quadrocopter Motions
 	// section III and IV
 	b_x_c_target = accelCmd.x / c;
-	b_x_c_target = CONSTRAIN(b_x_c_target, -maxTiltAngle, maxTiltAngle);
 	b_x_c_actual = R(0, 2);
+	b_x_c_target = CONSTRAIN(b_x_c_target, -maxTiltAngle, maxTiltAngle);
 	b_x_c_dot = kpBank * (b_x_c_target - b_x_c_actual);
 
 
 	b_y_c_target = accelCmd.y / c;
-	b_y_c_target = CONSTRAIN(b_y_c_target, -maxTiltAngle, maxTiltAngle);
 	b_y_c_actual = R(1, 2);
+	b_y_c_target = CONSTRAIN(b_y_c_target, -maxTiltAngle, maxTiltAngle);
 	b_y_c_dot = kpBank * (b_y_c_target - b_y_c_actual);
 	
 	pqrCmd.x = (b_x_c_dot * R(1, 0) - b_y_c_dot * R(0, 0)) / R(2, 2);
@@ -360,32 +361,45 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 	V3F accelCmd = accelCmdFF;
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	/*
+	   references:
+		  3d control lesson
+	*/
+
 	float x_err;
 	float x_err_dot;
 	float y_err;
 	float y_err_dot;
+	float norm;
 
+	// limit xy velocity command
+	norm = velCmd.magXY();
+	if (norm > maxSpeedXY) {
+		velCmd *= maxSpeedXY / norm;
+	}
 
-	// limit velocity command
-	velCmd.x = CONSTRAIN(velCmd.x, -maxSpeedXY, maxSpeedXY);
-	velCmd.y = CONSTRAIN(velCmd.y, -maxSpeedXY, maxSpeedXY);
 
 	// compute x term
 	x_err = posCmd.x - pos.x;
 	x_err_dot = velCmd.x - vel.x;
-	accelCmd.x = (kpPosXY * x_err)  + (kpVelXY * x_err_dot) + accelCmdFF.x;
-	// limit it
-	accelCmd.x = CONSTRAIN(accelCmd.x,-maxAccelXY,maxAccelXY);
+	accelCmd.x = (kpPosXY * x_err) + (kpVelXY * x_err_dot) + accelCmdFF.x;
 
 	// compute y term
 	y_err = posCmd.y - pos.y;
 	y_err_dot = velCmd.y - vel.y;
 	accelCmd.y = (kpPosXY * y_err) + (kpVelXY * y_err_dot) + accelCmdFF.y;
-	// limit it
-	accelCmd.y = CONSTRAIN(accelCmd.y,-maxAccelXY,maxAccelXY);
+
+	// limiting the accelaration command made the trajectory following worse
+	// so it is removed
+	// limit xy velocity command
+	// norm = accelCmd.magXY();
+	// if (norm > maxAccelXY) {
+	// 	accelCmd *= maxAccelXY / norm;
+	// }
 
 	// no z component
 	accelCmd.z = 0.0f;
+
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
 	return accelCmd;
@@ -406,7 +420,8 @@ float QuadControl::YawControl(float yawCmd, float yaw)
 
 	float yawRateCmd = 0;
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-	// limit yaw to +- PI
+	// limit yaw to 2PI
+	yawCmd = fmod(yawCmd, 2.0f * F_PI);
 
 	yawCmd = AngleNormF(yawCmd);
 	yaw = AngleNormF(yaw);

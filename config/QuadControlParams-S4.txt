@@ -28,7 +28,7 @@ kpVelXY = 10
 kpVelZ = 6
 
 # Angle control gains
-kpBank = 14
+kpBank = 12
 kpyaw  = 6
 
 # Angle rate gains
@@ -40,4 +40,3 @@ maxDescentRate = 2
 maxSpeedXY = 5
 maxHorizAccel = 12
 maxTiltAngle = .7
-
