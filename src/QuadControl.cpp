@@ -86,7 +86,7 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	   code from exercises
 	   hints from previous cohorts (slack)
 	
-	GAINS FOR PROP VELOCITY SOLUTION kpPQR = 42,42,6
+	GAINS FOR PROP VELOCITY SOLUTION kpPQR = 42,42,15
 	*/
 	float omega[4];
 	float len = L / sqrtf(2.0f);
