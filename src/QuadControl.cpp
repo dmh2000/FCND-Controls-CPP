@@ -88,8 +88,6 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	   Feed-Forward Parameter Identification for Precise Periodic Quadrocopter Motions
 	   code from exercises
 	   hints from previous cohorts (slack)
-	
-	GAINS FOR PROP VELOCITY SOLUTION kpPQR = 42,42,15
 	*/
 	float omega[4];
 	float len = L / sqrtf(2.0f);
@@ -117,7 +115,6 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 		Thrust Mixing, Saturation, and Body-Rate Control for Accurate Aggressive Quadrotor Flight	
 		Faessler,Scaramuzza
 		hints from previous cohorts (slack)
-	GAINS FOR FORCE-TORQUE SOLUTION  kpPQR = 42,42,15
 	*/
 	float t[4];
 	float len = L / sqrtf(2.0f);
@@ -198,6 +195,8 @@ V3F QuadControl::BodyRateControl(V3F pqrCmd, V3F pqr)
 	V3F momentCmd;
 
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+	// references:
+	//    lesson on pqr controller
 	V3F I(Ixx, Iyy, Izz);
 
 	// compute moments from rates * moment of intertia for each axis
@@ -303,7 +302,6 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 
 	/*
 	   references:
-	     
 	      PID Control Exercise
 	*/
 
@@ -364,6 +362,7 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 	/*
 	   references:
 		  3d control lesson
+		  hints on how to limit velocity by magxy from slack channel p3-control
 	*/
 
 	float x_err;
