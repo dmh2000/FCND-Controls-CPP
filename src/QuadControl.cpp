@@ -12,6 +12,9 @@
 #include <systemlib/param/param.h>
 #endif
 
+// added to constrain yaw angle
+#include "Math/Angles.h"
+
 const float G = 9.81f;
 
 void QuadControl::Init()
@@ -198,7 +201,7 @@ V3F QuadControl::BodyRateControl(V3F pqrCmd, V3F pqr)
 	V3F I(Ixx, Iyy, Izz);
 
 	// compute moments from rates * moment of intertia for each axis
-	momentCmd = (pqrCmd - pqr) * kpPQR * I;
+	momentCmd = kpPQR * (pqrCmd - pqr) * I;
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
 	return momentCmd;
@@ -229,6 +232,11 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 	float c;
 
+	// no negative thrust allowed
+	if (collThrustCmd < 0.0f) {
+		return pqrCmd;
+	}
+
 	// convert collective thrust to acceleration
 	c = -collThrustCmd / mass;
 
@@ -243,12 +251,15 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 	// from Feed-Forward Parameter Identification for Precise Periodic Quadrocopter Motions
 	// section III and IV
 	b_x_c_target = accelCmd.x / c;
+	b_x_c_target = CONSTRAIN(b_x_c_target, -maxTiltAngle, maxTiltAngle);
 	b_x_c_actual = R(0, 2);
-	b_x_c_dot = (b_x_c_target - b_x_c_actual) * kpBank;
+	b_x_c_dot = kpBank * (b_x_c_target - b_x_c_actual);
+
 
 	b_y_c_target = accelCmd.y / c;
+	b_y_c_target = CONSTRAIN(b_y_c_target, -maxTiltAngle, maxTiltAngle);
 	b_y_c_actual = R(1, 2);
-	b_y_c_dot = (b_y_c_target - b_y_c_actual) * kpBank;
+	b_y_c_dot = kpBank * (b_y_c_target - b_y_c_actual);
 	
 	pqrCmd.x = (b_x_c_dot * R(1, 0) - b_y_c_dot * R(0, 0)) / R(2, 2);
 	pqrCmd.y = (b_x_c_dot * R(1, 1) - b_y_c_dot * R(0, 1)) / R(2, 2);
@@ -288,7 +299,12 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 	float z_dot_limited;
 	float u_1_bar;
 	float c;
-	static float max_thrust = 0.0f;
+
+	/*
+	   references:
+	     
+	      PID Control Exercise
+	*/
 
 	// compute the desired z_dot_limited
 	z_err = posZCmd - posZ;
@@ -297,14 +313,18 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 
 	// position term
 	z_err_dot = velZCmd - velZ;
-	integratedAltitudeError += z_err * dt;
-	u_1_bar = z_err * kpPosZ + z_err_dot * kpVelZ + accelZCmd + integratedAltitudeError * KiPosZ;
 
-	// acceleration
+	// integrator
+	integratedAltitudeError += z_err * dt;
+
+	// u_1_bar term
+	u_1_bar =( kpPosZ * z_err) + (kpVelZ * z_err_dot) + (KiPosZ * integratedAltitudeError) + accelZCmd;
+
+	// collective acceleration
 	c = (u_1_bar - G) / R(2, 2);
 
 	// convert to force (F=MA) with UP = +
-	thrust = -1.0 * (mass * c);
+	thrust = -1.0f * (mass * c);
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 	return thrust;
@@ -345,21 +365,22 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 	float y_err;
 	float y_err_dot;
 
+
 	// limit velocity command
-	//velCmd.x = CONSTRAIN(velCmd.x, -maxSpeedXY, maxSpeedXY);
-	//velCmd.y = CONSTRAIN(velCmd.y, -maxSpeedXY, maxSpeedXY);
+	velCmd.x = CONSTRAIN(velCmd.x, -maxSpeedXY, maxSpeedXY);
+	velCmd.y = CONSTRAIN(velCmd.y, -maxSpeedXY, maxSpeedXY);
 
 	// compute x term
 	x_err = posCmd.x - pos.x;
 	x_err_dot = velCmd.x - vel.x;
-	accelCmd.x = x_err * kpPosXY + x_err_dot * kpVelXY + accelCmdFF.x;
+	accelCmd.x = (kpPosXY * x_err)  + (kpVelXY * x_err_dot) + accelCmdFF.x;
 	// limit it
 	accelCmd.x = CONSTRAIN(accelCmd.x,-maxAccelXY,maxAccelXY);
 
 	// compute y term
 	y_err = posCmd.y - pos.y;
 	y_err_dot = velCmd.y - vel.y;
-	accelCmd.y = y_err * kpPosXY + y_err_dot * kpVelXY + accelCmdFF.y;
+	accelCmd.y = (kpPosXY * y_err) + (kpVelXY * y_err_dot) + accelCmdFF.y;
 	// limit it
 	accelCmd.y = CONSTRAIN(accelCmd.y,-maxAccelXY,maxAccelXY);
 
@@ -385,9 +406,11 @@ float QuadControl::YawControl(float yawCmd, float yaw)
 
 	float yawRateCmd = 0;
 	////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-	//yawCmd = fmodf(yawCmd, F_PI);
-	//yaw = fmodf(yaw, F_PI);
-	yawRateCmd = (yawCmd - yaw) * kpYaw;
+	// limit yaw to +- PI
+
+	yawCmd = AngleNormF(yawCmd);
+	yaw = AngleNormF(yaw);
+	yawRateCmd = kpYaw * (yawCmd - yaw);
 
 	/////////////////////////////// END STUDENT CODE ////////////////////////////
 
