@@ -48,7 +48,10 @@ The test passed with kpPQR = 42,42,15. This threw me my tuning for scenario 3.
 The file config/QuadControlParams-S2 has the gains that passed the test in this
 scenario.
 
-![scenario 2](file:///./scenario-2.gif)
+The gif recorder cut off the final frames that showed the success green bars but 
+
+![scenario 2](scenario-2.png)
+![scenario 2](scenario-2.gif)
 
 
 ### Scenario 3 - Position Control
@@ -65,7 +68,8 @@ Tuning of the parameters took several hours to pass the test.
 
 The file config/QuadControlParams-S3.txt has the gains that passed the test in this scenario.
 
-![scenario 3](https://github.com/dmh2000/FCND-Controls-DPP)/scenario-3.gif)
+![scenario 2](scenario-3.png)
+![scenario 3](scenario-3.gif)
 
 ### Scenario 4 - Non-Idealities
 The goal of this scenario was to tune the existing parameters to have the 3 quads fly to their respective
@@ -74,7 +78,11 @@ target position within the error and time limits.
 No changes to the implementations were required at this point. Quad 2, the 'normal' quad worked as is
 with the existing parameters. Quad 1
 
-![scenario 4](https://github.com/dmh2000/FCND-Controls-DPP)/scenario-4.gif)
+![scenario 4](scenario-4.png)
+![scenario 4](scenario-4.gif)
 
 
+### Scenario 5 - TrajectoryFollowing
 
+![scenario 5](scenario-5.png)
+![scenario 5](scenario-5.gif)
