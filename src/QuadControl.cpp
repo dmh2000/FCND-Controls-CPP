@@ -100,6 +100,39 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
 	float q_bar = momentCmd.y / len;
 	float r_bar = -momentCmd.z / kappa;
 
+	/* solving the linear equations for omega[n]
+	isolate omega[0] by adding all four equations
+	c_bar = O[0] + O[1] + O[2] + O[3]
+	p_bar = O[0] - O[1] - O[2] + O[3]
+	q_bar = O[0] + O[1] - O[2] - O[3]
+	r_bar = O[0] - O[1] + O[2] - O[3]
+	-----------------------------------
+					4*O[0] + 0*O[1] + 0*O[2] + 0*O[3]
+	c_bar + p_bar + q_bar + r_bar = 4 * omega[0]
+	c_bar = omega[0] / 4
+
+	isolate omega[1] by adding c_bar and q_bar
+	c_bar = O[0] + O[1] + O[2] + O[3]
+	q_bar = O[0] + O[1] - O[2] - O[3]
+	-----------------------------------
+	c_bar + qbar = 2*O[0] + 2*O[1]
+	omega[1] = (c_bar + q_bar - 2*omega[0]) / 2
+
+	isolate omega[2] by adding c_bar and r_bar
+	c_bar = O[0] + O[1] + O[2] + O[3]
+	r_bar = O[0] - O[1] + O[2] - O[3]
+	-----------------------------------
+	c_bar + r_bar = 2 * O[0] + 0 + 2 * O[2] + 0
+	omega[2] = (c_bar + r_bar - 2*omega[0]) / 2
+
+	isolate omega[3] by adding c_bar and p_bar
+	c_bar = O[0] + O[1] + O[2] + O[3]
+	p_bar = O[0] - O[1] - O[2] + O[3]
+	-----------------------------------
+	c_bar + p_bar = 2 * O[0] + 0 + 2 * O[3] + 0
+	omega[3] = (c_bar + p_bar + 2*omega[0]) / 2
+	*/
+
 	omega[0] = (c_bar + p_bar + q_bar + r_bar) / 4.0f;
 	omega[1] = (c_bar + q_bar - 2 * omega[0]) / 2.0f;
 	omega[2] = (c_bar + r_bar - 2 * omega[0]) / 2.0f;
