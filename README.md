@@ -48,7 +48,7 @@ target positions within the error limits.
 
 The altitude control followed the exercise on a feedfoward controller along with the lesson on PID control for
 adding the integrator value. The lateral position controller and yaw controller were also straighforward. No constraints
-were implemnted yet. 
+were implemented yet. 
 
 Tuning of the parameters took several hours to pass the test. 
 
@@ -73,6 +73,9 @@ the integrator would correct its position, but too slowly so the time limit was 
 some balancing LateralController gains and the Z integrator gain resulted in the test passing. At this
 point all three tests passed.
 
+The file config/QuadControlParams-S4 has the gains that passed the test in this
+scenario.
+
 ![scenario 4](scenario-4.png)
 <p><img src="scenario-4.gif" width="800" alt="scenario 4"/></p>
 
@@ -89,6 +92,8 @@ using the CONSTRAIN macro. This improved the flights but they were not passing y
 it was found that the velocity command limit should be placed on the total velocity command rather than the 
 individual X and Y components. That was changed and again the flight improved but did not pass. The
 constraint on the acceleration commands in the LateralController were removed and the flights passed.
+
+The file config/QuadControlParams.txt has the gains that passed the tests in all scenarios.
 
 ![scenario 5](scenario-5.png)
 <p><img src="scenario-5.gif" width="800" alt="scenario 5"/></p>
@@ -201,25 +206,25 @@ it was implemented separately on X and Y but that had poor reseults. The proper
 method was noted in the slack channel comments. That implementation worked.
 
 ```
-	// limit overall xy velocity command 
-	norm = velCmd.magXY();
-	if (norm > maxSpeedXY) {
-		velCmd *= maxSpeedXY / norm;
-	}
+// limit overall xy velocity command 
+norm = velCmd.magXY();
+if (norm > maxSpeedXY) {
+	velCmd *= maxSpeedXY / norm;
+}
 
-	// compute x term
-	x_err = posCmd.x - pos.x;
-	x_err_dot = velCmd.x - vel.x;
-	accelCmd.x = (kpPosXY * x_err) + (kpVelXY * x_err_dot) + accelCmdFF.x;
+// compute x term
+x_err = posCmd.x - pos.x;
+x_err_dot = velCmd.x - vel.x;
+accelCmd.x = (kpPosXY * x_err) + (kpVelXY * x_err_dot) + accelCmdFF.x;
 
-	// compute y term
-	y_err = posCmd.y - pos.y;
-	y_err_dot = velCmd.y - vel.y;
-	accelCmd.y = (kpPosXY * y_err) + (kpVelXY * y_err_dot) + accelCmdFF.y;
+// compute y term
+y_err = posCmd.y - pos.y;
+y_err_dot = velCmd.y - vel.y;
+accelCmd.y = (kpPosXY * y_err) + (kpVelXY * y_err_dot) + accelCmdFF.y;
 
-	// limiting the accelaration command made the trajectory following worse so it is removed
-	// no z component
-	accelCmd.z = 0.0f;
+// limiting the accelaration command made the trajectory following worse so it is removed
+// no z component
+accelCmd.z = 0.0f;
 ```
 
 ### Yaw Controller Implementation
@@ -227,20 +232,20 @@ This implementation followed the Python exercise with the addition
 of the limitation on the yaw command. The "Math/Angles.h" file 
 including the normalization function that was applied to yaw terms. 
 ```
-	yawCmd = fmod(yawCmd, 2.0f * F_PI);
+yawCmd = fmod(yawCmd, 2.0f * F_PI);
 
-	yawCmd = AngleNormF(yawCmd);
-	yaw = AngleNormF(yaw);
-	yawRateCmd = kpYaw * (yawCmd - yaw);
+yawCmd = AngleNormF(yawCmd);
+yaw = AngleNormF(yaw);
+yawRateCmd = kpYaw * (yawCmd - yaw);
 ```
 
 ## Conclusion
 Approximately 30 hours were spent on this project. Most of the time was spent
 on the following activities, in increasing order.
-- Initial parameter tuning for scenario 3, just to get the feel of how they all interacted.
 - Code changes (constraints) for scenario 5
 - Understanding how to implement GenerateMotorCommands, due to the subtle differences from the Python exercise.
-- Gain tuning for scenario 4
+- Parameter tuning for scenario 4
+- Initial parameter tuning for scenario 3
 
 As expected, gain tuning took the most time. Scenario 5 passed the tests, but the initial entry path taken
 by the quads wasn't ideal. Some time was spent attempting to improve that, but without success.
