@@ -31,7 +31,7 @@ the scenario began to pass. I required several iterations of
 
 Tuning of kpPQR was straigtforward. I simply doubled the initial value (23) and twiddled it a little
 and the test passed. The kpPQR gains that worked were relatively low compared to what was needed later. 
-The test passed with kpPQR = 42,42,15. This threw me my tuning for scenario 3.
+The test passed with kpPQR = 42,42,15. This threw off my tuning for scenario 3 because I didn't know yet that it needed to be much higher.
 
 The file config/QuadControlParams-S2 has the gains that passed the test in this
 scenario. The gif recorder cut off the final frames that showed the success green bars but test was passing.
