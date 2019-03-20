@@ -66,7 +66,7 @@ with the existing parameters. Quad 1 with the offset CG failed the test because 
 small offset from the target position. There is no integrator in the LatertalController that would
 help correct this. After iterating the gains, it was found that increasing the kpPQR gains would move the 
 stop position towards the target point. These gains were increased until they were about 4X the original values
-and the test passed. Quad 3 with the dip in Z position was failing the test because it would either overshoot
+and the test passed. Quad 3 with the dip in Z position was failing the test because it would overshoot
 the target and then move back, exceeding the time limit. Per the instruction an integrator was added to 
 the AltitudeController. After some gain changes, the quad would stop under the target position and then
 the integrator would correct its position, but too slowly so the time limit was still exceeded. Finally
